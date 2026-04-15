@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kitchen Screen</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #111;
+  color: white;
+}
+
+h1 {
+  text-align: center;
+  padding: 15px;
+  background: #222;
+  margin: 0;
+}
+
+.container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 15px;
+  padding: 15px;
+}
+
+.card {
+  background: #1c1c1c;
+  border-radius: 10px;
+  padding: 15px;
+  border-left: 6px solid orange;
+}
+
+.card.ready {
+  border-left: 6px solid green;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.items {
+  margin-top: 10px;
+}
+
+button {
+  margin-top: 10px;
+  padding: 8px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.ready-btn {
+  background: green;
+  color: white;
+}
+</style>
+</head>
+
+<body>
+
+<h1>👨‍🍳 Kitchen Live Orders</h1>
+
+<div class="container" id="orders"></div>
+
+<script>
+const WS_URL = "wss://cafebckend1.onrender.com/ws"; // 🔥 change if needed
+
+const container = document.getElementById("orders");
+
+// 🔌 Connect WebSocket
+const socket = new WebSocket(WS_URL);
+
+socket.onopen = () => {
+  console.log("Connected to kitchen server");
+};
+
+socket.onmessage = (event) => {
+  const order = JSON.parse(event.data);
+  addOrder(order);
+};
+
+socket.onerror = (err) => {
+  console.error("WebSocket error:", err);
+};
+
+function addOrder(order) {
+  const div = document.createElement("div");
+  div.className = "card";
+
+  div.innerHTML = `
+    <div class="header">
+      <strong>${order.customer}</strong>
+      <span>Table: ${order.table}</span>
+    </div>
+    <div>📞 ${order.phone}</div>
+    <div class="items">
+      <ul>
+        ${order.items.map(i => `<li>${i.name} × ${i.qty}</li>`).join("")}
+      </ul>
+    </div>
+    <button class="ready-btn" onclick="markReady(this)">✅ Ready</button>
+  `;
+
+  container.prepend(div); // newest on top
+}
+
+function markReady(btn) {
+  const card = btn.parentElement;
+  card.classList.add("ready");
+  btn.remove();
+}
+</script>
+
+</body>
+</html>

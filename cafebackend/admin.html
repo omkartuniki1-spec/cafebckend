@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cafe Admin Panel</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f5f5f5;
+  margin: 0;
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+}
+
+.order-card {
+  background: white;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.order-items {
+  margin-top: 10px;
+}
+
+.status {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+}
+
+.preparing { background: orange; color: white; }
+.ready { background: green; color: white; }
+
+button {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.btn-ready {
+  background: green;
+  color: white;
+}
+
+.btn-refresh {
+  display: block;
+  margin: 20px auto;
+  background: black;
+  color: white;
+}
+</style>
+</head>
+<body>
+
+<h1>☕ Cafe Admin Panel</h1>
+
+<button class="btn-refresh" onclick="fetchOrders()">🔄 Refresh Orders</button>
+
+<div class="container" id="ordersContainer"></div>
+
+<script>
+const API = "https://cafebckend1.onrender.com/orders";
+
+// 🔥 Normalize response to always return array
+function normalizeOrders(data) {
+  if (Array.isArray(data)) return data;
+  if (data.orders && Array.isArray(data.orders)) return data.orders;
+  return []; // fallback
+}
+
+async function fetchOrders() {
+  try {
+    const res = await fetch(API);
+    const rawData = await res.json();
+
+    const data = normalizeOrders(rawData);
+
+    const container = document.getElementById("ordersContainer");
+    container.innerHTML = "";
+
+    if (!Array.isArray(data) || data.length === 0) {
+      container.innerHTML = "<p>No orders yet</p>";
+      return;
+    }
+
+    // Clone array before reverse (safe)
+    const orders = [...data].reverse();
+
+    orders.forEach((order, index) => {
+      const div = document.createElement("div");
+      div.className = "order-card";
+
+      // 🔥 Safe fallback for missing fields
+      const customer = order.customer || "Unknown";
+      const phone = order.phone || "N/A";
+      const items = Array.isArray(order.items) ? order.items : [];
+
+      div.innerHTML = `
+        <div class="order-header">
+          <strong>Order #${index + 1}</strong>
+          <span class="status preparing">Preparing</span>
+        </div>
+        <div><b>Customer:</b> ${customer}</div>
+        <div><b>Phone:</b> ${phone}</div>
+        <div class="order-items">
+          <b>Items:</b>
+          <ul>
+            ${items.map(item => `<li>${item.name || "Item"} × ${item.qty || 1}</li>`).join("")}
+          </ul>
+        </div>
+        <button class="btn-ready" onclick="markReady(this)">Mark as Ready</button>
+      `;
+
+      container.appendChild(div);
+    });
+
+  } catch (err) {
+    alert("Error fetching orders");
+    console.error("Fetch error:", err);
+  }
+}
+
+function markReady(btn) {
+  const status = btn.parentElement.querySelector(".status");
+  status.textContent = "Ready";
+  status.classList.remove("preparing");
+  status.classList.add("ready");
+  btn.remove();
+}
+
+// Auto load
+fetchOrders();
+
+// Auto refresh every 5 seconds
+setInterval(fetchOrders, 5000);
+
+// 🔥 TEST CASES (for debugging in console)
+// You can run these manually in browser console:
+
+// Case 1: API returns array
+// normalizeOrders([{customer:"A"}])
+
+// Case 2: API returns object with orders key
+// normalizeOrders({orders:[{customer:"B"}]})
+
+// Case 3: Invalid response
+// normalizeOrders({error:"fail"})
+
+</script>
+
+</body>
+</html>
